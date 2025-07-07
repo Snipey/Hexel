@@ -1,0 +1,188 @@
+name: Container Registry Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'cleanup'
+        type: choice
+        options:
+        - cleanup
+        - list
+        - info
+  schedule:
+    # Run cleanup every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/discordbot
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.action == 'cleanup'
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Clean up old images
+      run: |
+        # Get list of images older than 30 days (excluding latest and main tags)
+        echo "Cleaning up old container images..."
+        
+        # Remove images older than 30 days (keep latest 5 versions)
+        docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}" | \
+        grep -v "latest\|main" | \
+        tail -n +6 | \
+        awk '{print $1}' | \
+        xargs -r docker rmi || true
+        
+        echo "Cleanup completed"
+
+  list-images:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'list'
+    permissions:
+      packages: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: List container images
+      run: |
+        echo "Available container images:"
+        docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+        
+        echo ""
+        echo "Image details:"
+        docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "{{.Repository}}:{{.Tag}} ({{.Size}}, {{.CreatedAt}})"
+
+  registry-info:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'info'
+    permissions:
+      packages: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Get registry information
+      run: |
+        echo "GitHub Container Registry Information"
+        echo "====================================="
+        echo "Registry: ${{ env.REGISTRY }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Image Name: ${{ env.IMAGE_NAME }}"
+        echo "Full Image Path: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+        echo ""
+        echo "Usage Instructions:"
+        echo "=================="
+        echo "Pull latest image:"
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        echo ""
+        echo "Pull specific version:"
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v1.0.0"
+        echo ""
+        echo "Run container:"
+        echo "docker run -d \\"
+        echo "  --name discordbot \\"
+        echo "  -p 3001:3001 \\"
+        echo "  -e DISCORD_TOKEN=your_token \\"
+        echo "  -e DISCORD_CLIENT_ID=your_client_id \\"
+        echo "  -e DISCORD_GUILD_ID=your_guild_id \\"
+        echo "  -e JWT_SECRET=your_secret \\"
+        echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  publish-release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract version
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Pull and tag for release
+      run: |
+        # Pull the latest image
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        
+        # Tag with version
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+        
+        # Push versioned tag
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+        
+        echo "Published release image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          ## Discord Bot Release ${{ steps.version.outputs.version }}
+          
+          ### Docker Image
+          ```
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          ```
+          
+          ### Quick Start
+          ```bash
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          docker run -d --name discordbot -p 3001:3001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          ```
+          
+          ### Environment Variables
+          - `DISCORD_TOKEN` - Your Discord bot token
+          - `DISCORD_CLIENT_ID` - Your Discord client ID
+          - `DISCORD_GUILD_ID` - Your Discord guild ID
+          - `JWT_SECRET` - JWT secret for API authentication
+          - `DATABASE_TYPE` - Database type (sqlite/postgresql)
+          - `DATABASE_URL` - Database connection string
+        draft: false
+        prerelease: false 

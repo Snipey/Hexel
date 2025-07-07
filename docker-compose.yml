@@ -3,6 +3,7 @@ version: '3.8'
 services:
   # Discord Bot with SQLite
   discordbot-sqlite:
+    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/discordbot}:latest
     build:
       context: .
       target: development
@@ -27,6 +28,7 @@ services:
 
   # Discord Bot with PostgreSQL
   discordbot-postgresql:
+    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/discordbot}:latest
     build:
       context: .
       target: development
@@ -75,6 +77,7 @@ services:
 
   # Production Discord Bot
   discordbot-prod:
+    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/discordbot}:latest
     build:
       context: .
       target: production
