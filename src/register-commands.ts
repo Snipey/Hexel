@@ -2,7 +2,8 @@ import { REST, Routes } from 'discord.js';
 import path from 'path';
 import 'dotenv/config';
 import logger from './logger';
-import { loadModules, CommandModule } from './utils';
+const craft = require('./commands/craft');
+const ping = require('./commands/ping');
 
 function hasToJSON(obj: any): obj is { toJSON: () => any } {
   return obj && typeof obj.toJSON === 'function';
@@ -10,9 +11,7 @@ function hasToJSON(obj: any): obj is { toJSON: () => any } {
 
 (async () => {
   const commands: any[] = [];
-  const commandsPath = path.join(__dirname, 'commands');
-  const loadedCommands = await loadModules<CommandModule>(commandsPath);
-  loadedCommands.forEach(cmd => {
+  [craft, ping].forEach(cmd => {
     if (cmd.data) {
       if (hasToJSON(cmd.data)) {
         commands.push(cmd.data.toJSON());

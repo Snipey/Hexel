@@ -1,109 +1,79 @@
 # Security Setup Guide
 
-## Overview
-
-The Discord bot now uses a secure Fastify API with comprehensive security features:
-
-- **JWT Authentication**: Secure token-based authentication
-- **Rate Limiting**: Prevents abuse with configurable limits
-- **CORS Protection**: Controlled cross-origin requests
-- **Helmet Security**: HTTP security headers
-- **Request Validation**: Zod schema validation
-- **OpenAPI Documentation**: Auto-generated API docs
+This guide covers security best practices for running the Discord bot in production.
 
 ## Environment Variables
 
+### Required Variables
 Add these to your `.env` file:
 
 ```env
 # Discord Bot Configuration
-DISCORD_TOKEN=your_discord_bot_token_here
+BOT_TOKEN=your_discord_bot_token_here
 CLIENT_ID=your_discord_client_id_here
 GUILD_ID=your_discord_guild_id_here
 
-# Database
-DATABASE_URL="file:./dev.db"
-
-# API Security
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
-
-# Optional: Custom API Port
-API_PORT=4000
+# Logging
+LOG_LEVEL=info
 ```
 
-## Security Features
+### Security Best Practices
 
-### 1. JWT Authentication
-- All API endpoints (except `/auth/login` and `/docs`) require JWT authentication
-- Tokens expire after 24 hours
-- Include token in Authorization header: `Bearer <token>`
+1. **Never commit `.env` files** - They're already in `.gitignore`
+2. **Use strong, unique tokens** - Generate new tokens for each environment
+3. **Rotate tokens regularly** - Change Discord bot tokens periodically
+4. **Use environment-specific configs** - Different tokens for dev/staging/prod
 
-### 2. Rate Limiting
-- 100 requests per minute per IP
-- Configurable limits in `src/bot/api.ts`
+## Discord Bot Security
 
-### 3. CORS Protection
-- Only allows requests from specified origins
-- Configure via `ALLOWED_ORIGINS` environment variable
+### Bot Permissions
+Only grant the minimum required permissions:
+- Send Messages
+- Embed Links
+- Read Message History
+- Use Slash Commands
+- View Channels
 
-### 4. Request Validation
-- All requests validated with Zod schemas
-- Automatic error responses for invalid data
+### Token Security
+- Store tokens securely (environment variables, secret managers)
+- Never log or expose tokens in code
+- Use different tokens for development and production
 
-### 5. Security Headers
-- Helmet.js provides comprehensive HTTP security headers
-- Content Security Policy (CSP) configured
+## Production Deployment
 
-## API Endpoints
+### Docker Security
+- Run containers as non-root user
+- Use multi-stage builds to minimize attack surface
+- Keep base images updated
+- Scan images for vulnerabilities
 
-### Authentication
-- `POST /auth/login` - Login and get JWT token
-- `GET /health` - Health check (no auth required)
+### Network Security
+- Use HTTPS in production
+- Configure proper firewall rules
+- Limit container network access
 
-### Projects
-- `GET /projects` - List all projects (requires auth)
-- `GET /projects/:id` - Get specific project (requires auth)
-- `PATCH /projects/:id` - Update project (requires auth)
+## Monitoring and Logging
 
-### Resources
-- `POST /projects/:id/resources` - Add resource to project (requires auth)
-- `GET /resources/:id` - Get specific resource (requires auth)
-- `PATCH /resources/:id` - Update resource (requires auth)
-- `POST /resources/:id/complete` - Complete resource (requires auth)
-- `DELETE /resources/:id` - Delete resource (requires auth)
+### Log Management
+- Configure appropriate log levels
+- Rotate log files regularly
+- Monitor for suspicious activity
+- Use structured logging
 
-## API Documentation
+### Health Checks
+- Implement health check endpoints
+- Monitor bot uptime and performance
+- Set up alerts for failures
 
-Visit `http://localhost:4000/docs` for interactive API documentation.
+## Updates and Maintenance
 
-## Dashboard Integration
+### Regular Updates
+- Keep dependencies updated
+- Monitor security advisories
+- Test updates in staging first
+- Have rollback procedures ready
 
-The Next.js dashboard has been updated to:
-- Handle JWT authentication
-- Store tokens in localStorage
-- Automatically refresh on token expiration
-- Display user information
-- Provide login/logout functionality
-
-## Demo Credentials
-
-For testing purposes, the API accepts any username/password combination.
-
-## Production Considerations
-
-1. **Change JWT Secret**: Use a strong, random secret in production
-2. **HTTPS**: Always use HTTPS in production
-3. **Environment Variables**: Never commit secrets to version control
-4. **Rate Limiting**: Adjust limits based on your needs
-5. **CORS**: Restrict origins to your actual domains
-6. **Database**: Use a production database (PostgreSQL, MySQL, etc.)
-7. **Logging**: Configure proper logging for security monitoring
-
-## Security Best Practices
-
-1. **Regular Updates**: Keep dependencies updated
-2. **Monitoring**: Monitor API usage and errors
-3. **Backup**: Regular database backups
-4. **Access Control**: Implement proper user roles if needed
-5. **Audit Logs**: Log authentication and authorization events 
+### Backup Strategy
+- Regular backups of configuration
+- Version control for all changes
+- Document deployment procedures 

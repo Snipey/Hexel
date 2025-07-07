@@ -7,7 +7,6 @@ import { CommandModule } from './types/command';
 import { InteractionModule } from './types/interaction';
 import { Client, GatewayIntentBits } from 'discord.js';
 import logger from './utils/logger';
-import { startServer } from './bot/api';
 
 (async () => {
   // Load commands and interactions
@@ -62,7 +61,4 @@ import { startServer } from './bot/api';
 
   // Start the bot
   await startBot(commandsMap, loadedInteractions);
-  
-  // Start the secure API server
-  await startServer();
 })(); 

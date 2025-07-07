@@ -1,280 +1,224 @@
 # Docker Setup Guide
 
-This guide covers how to build, run, and deploy the Discord bot using Docker.
+This guide covers setting up and running the Discord bot using Docker.
 
 ## Prerequisites
 
-- Docker installed on your system
-- Docker Compose (included with Docker Desktop)
-- GitHub account (for container registry)
+- Docker and Docker Compose installed
+- Discord bot token and client ID
+- Git (to clone the repository)
 
 ## Quick Start
 
-### 1. Build and Run with SQLite (Development)
-
+### 1. Clone and Setup
 ```bash
-# Build and run with SQLite
-docker-compose --profile sqlite up --build
-
-# Or run in background
-docker-compose --profile sqlite up -d --build
+git clone <repository-url>
+cd discordbot/bot
 ```
 
-### 2. Build and Run with PostgreSQL
-
-```bash
-# Build and run with PostgreSQL
-docker-compose --profile postgresql up --build
-
-# Or run in background
-docker-compose --profile postgresql up -d --build
-```
-
-### 3. Production Deployment
-
-```bash
-# Build and run production image
-docker-compose --profile production up --build
-```
-
-## Docker Images
-
-### Multi-stage Build
-
-The Dockerfile uses a multi-stage build with three stages:
-
-1. **Base Stage**: Common dependencies and setup
-2. **Development Stage**: Full development environment with hot reload
-3. **Production Stage**: Optimized production image with minimal footprint
-
-### Image Tags
-
-- `discordbot:development` - Development image with hot reload
-- `discordbot:production` - Production optimized image
-- `ghcr.io/your-username/discordbot:latest` - Latest from GitHub Container Registry
-
-## Environment Variables
-
+### 2. Environment Configuration
 Create a `.env` file in the bot directory:
 
 ```env
-# Database Configuration
-DATABASE_TYPE=sqlite  # or postgresql
-DATABASE_URL=file:./dev.db  # for SQLite
-# DATABASE_URL=postgresql://bot:password@postgres:5432/discordbot?schema=public  # for PostgreSQL
-
 # Discord Bot Configuration
 DISCORD_TOKEN=your_discord_bot_token_here
 DISCORD_CLIENT_ID=your_discord_client_id_here
 DISCORD_GUILD_ID=your_discord_guild_id_here
 
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_here
-
-# API Configuration
-API_PORT=3001
-API_HOST=0.0.0.0
+# Logging
+LOG_LEVEL=info
 ```
 
-## Docker Compose Services
+### 3. Run with Docker Compose
 
-### SQLite Development
-- **Service**: `discordbot-sqlite`
-- **Port**: 3001
-- **Database**: SQLite file
-- **Profile**: `sqlite`
+#### Development Mode
+```bash
+docker-compose up --build
+```
 
-### PostgreSQL Development
-- **Service**: `discordbot-postgresql`
-- **Port**: 3002
-- **Database**: PostgreSQL container
-- **Profile**: `postgresql`
+#### Production Mode
+```bash
+docker-compose --profile production up --build
+```
 
-### Production
-- **Service**: `discordbot-prod`
-- **Port**: 3000
-- **Database**: Configurable
-- **Profile**: `production`
+## Docker Compose Profiles
+
+### Development Profile (Default)
+- Uses development Dockerfile
+- Includes hot reloading
+- Exposes port 3001 for development
+- Mounts source code for live editing
+
+### Production Profile
+- Uses production Dockerfile
+- Optimized for performance
+- Minimal image size
+- Runs as non-root user
+
+## Dockerfile Stages
+
+### Base Stage
+- Node.js 18 Alpine base
+- Installs pnpm package manager
+- Sets up working directory
+
+### Development Stage
+- Includes all dependencies
+- Copies source code
+- Enables hot reloading
+- Exposes development port
+
+### Builder Stage
+- Compiles TypeScript
+- Builds production assets
+- Optimizes for production
+
+### Production Stage
+- Minimal runtime dependencies
+- Copies only built assets
+- Runs as non-root user
+- Optimized for security
+
+## Volume Mounts
+
+### Data Persistence
+```yaml
+volumes:
+  - ./data:/app/data
+  - ./logs:/app/logs
+```
+
+### Development Mounts
+```yaml
+volumes:
+  - .:/app
+  - /app/node_modules
+```
+
+## Environment Variables
+
+### Required Variables
+- `DISCORD_TOKEN`: Your Discord bot token
+- `DISCORD_CLIENT_ID`: Your Discord application client ID
+- `DISCORD_GUILD_ID`: Your Discord guild/server ID
+
+### Optional Variables
+- `LOG_LEVEL`: Logging level (default: info)
 
 ## Health Checks
 
-The container includes health checks at the following endpoints:
+The production container includes health checks:
+- Checks bot connectivity
+- Monitors resource usage
+- Reports container status
 
-- `/health` - Full health check with database status
-- `/ready` - Readiness check
-- `/live` - Liveness check
+## Security Features
 
-### Manual Health Check
+### Non-Root User
+- Container runs as user `bot` (UID 1001)
+- Reduces security risks
+- Follows Docker best practices
 
-```bash
-# Check container health
-docker ps
+### Multi-Stage Build
+- Minimizes attack surface
+- Reduces image size
+- Separates build and runtime dependencies
 
-# Check health endpoint
-curl http://localhost:3001/health
-
-# Check container logs
-docker logs discordbot-sqlite
-```
-
-## GitHub Actions CI/CD
-
-### Automated Builds
-
-The GitHub Actions workflow automatically:
-
-1. **Builds** Docker images on push to main/develop branches
-2. **Tests** images on pull requests
-3. **Pushes** to GitHub Container Registry on main branch
-4. **Scans** for security vulnerabilities
-5. **Deploys** on version tags
-
-### Manual Deployment
-
-```bash
-# Create a new version tag
-git tag v1.0.0
-git push origin v1.0.0
-
-# Or trigger manual deployment via GitHub Actions
-```
-
-## Local Development
-
-### Development Mode
-
-```bash
-# Start development environment
-docker-compose --profile sqlite up --build
-
-# View logs
-docker-compose logs -f discordbot-sqlite
-
-# Stop services
-docker-compose down
-```
-
-### Database Management
-
-```bash
-# Switch database type in container
-docker exec -it discordbot-sqlite pnpm run db:switch-postgresql
-
-# Check database status
-docker exec -it discordbot-sqlite pnpm run db:status
-
-# Run migrations
-docker exec -it discordbot-sqlite pnpm run db:migrate
-```
-
-## Production Deployment
-
-### Using Docker Compose
-
-```bash
-# Production deployment
-docker-compose --profile production up -d --build
-
-# Scale services
-docker-compose --profile production up -d --scale discordbot-prod=3
-```
-
-### Using Docker Run
-
-```bash
-# Run production container
-docker run -d \
-  --name discordbot-prod \
-  -p 3000:3001 \
-  -e DATABASE_TYPE=postgresql \
-  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
-  -e DISCORD_TOKEN="your-token" \
-  -e DISCORD_CLIENT_ID="your-client-id" \
-  -e DISCORD_GUILD_ID="your-guild-id" \
-  -e JWT_SECRET="your-secret" \
-  ghcr.io/your-username/discordbot:latest
-```
-
-## Monitoring and Logging
-
-### Logs
-
-```bash
-# View container logs
-docker logs discordbot-sqlite
-
-# Follow logs in real-time
-docker logs -f discordbot-sqlite
-
-# View logs for all services
-docker-compose logs
-```
-
-### Resource Usage
-
-```bash
-# Check container resource usage
-docker stats
-
-# Check disk usage
-docker system df
-```
+### Security Headers
+- Helmet.js security middleware
+- CORS configuration
+- Rate limiting protection
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Container won't start**
-   ```bash
-   # Check logs
-   docker logs discordbot-sqlite
-   
-   # Check environment variables
-   docker exec -it discordbot-sqlite env
-   ```
-
-2. **Database connection issues**
-   ```bash
-   # Check database status
-   docker exec -it discordbot-sqlite pnpm run db:status
-   
-   # Test database connection
-   docker exec -it discordbot-sqlite pnpm prisma db pull
-   ```
-
-3. **Port conflicts**
-   ```bash
-   # Check port usage
-   netstat -tulpn | grep 3001
-   
-   # Use different port
-   docker-compose up -p 3003:3001
-   ```
-
-### Cleanup
-
+#### Bot Not Starting
 ```bash
-# Remove containers and volumes
-docker-compose down -v
+# Check logs
+docker-compose logs discordbot
 
-# Remove all unused containers, networks, and images
-docker system prune -a
-
-# Remove specific images
-docker rmi discordbot:development discordbot:production
+# Verify environment variables
+docker-compose config
 ```
 
-## Security Considerations
+#### Permission Issues
+```bash
+# Fix file permissions
+sudo chown -R 1001:1001 ./data ./logs
+```
 
-- **Non-root user**: Production container runs as non-root user
-- **Security scanning**: Trivy vulnerability scanner in CI/CD
-- **Environment variables**: Sensitive data passed via environment variables
-- **Health checks**: Built-in health monitoring
-- **Resource limits**: Consider setting memory and CPU limits
+#### Build Failures
+```bash
+# Clean build cache
+docker-compose build --no-cache
 
-## Performance Optimization
+# Rebuild specific service
+docker-compose build discordbot
+```
 
-- **Multi-stage builds**: Reduces final image size
-- **Layer caching**: Optimized Docker layer caching
-- **Alpine Linux**: Lightweight base image
-- **Production dependencies**: Only production dependencies in final image 
+### Debug Mode
+```bash
+# Run with debug logging
+LOG_LEVEL=debug docker-compose up
+```
+
+## Production Deployment
+
+### Docker Registry
+```bash
+# Build and push to registry
+docker build -t your-registry/discordbot:latest .
+docker push your-registry/discordbot:latest
+```
+
+### Kubernetes
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discordbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discordbot
+  template:
+    metadata:
+      labels:
+        app: discordbot
+    spec:
+      containers:
+      - name: discordbot
+        image: your-registry/discordbot:latest
+        env:
+        - name: DISCORD_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: discord-secrets
+              key: token
+```
+
+## Monitoring
+
+### Log Aggregation
+- Configure log drivers for production
+- Use centralized logging (ELK, Fluentd)
+- Set up log rotation
+
+### Metrics
+- Monitor container resource usage
+- Track bot performance metrics
+- Set up alerts for failures
+
+## Backup Strategy
+
+### Configuration
+- Version control all configuration
+- Backup environment variables
+- Document deployment procedures
+
+### Data
+- Regular backups of persistent data
+- Test restore procedures
+- Store backups securely 

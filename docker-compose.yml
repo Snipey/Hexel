@@ -1,104 +1,34 @@
 version: '3.8'
 
 services:
-  # Discord Bot with SQLite
-  discordbot-sqlite:
-    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/discordbot}:latest
+  # Discord Bot
+  discordbot:
     build:
       context: .
       target: development
-    container_name: discordbot-sqlite
+    container_name: discordbot
     environment:
-      - DATABASE_TYPE=sqlite
-      - DATABASE_URL=file:./dev.db
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-      - JWT_SECRET=${JWT_SECRET}
-      - API_PORT=3001
-      - API_HOST=0.0.0.0
-    ports:
-      - "3001:3001"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     restart: unless-stopped
-    profiles:
-      - sqlite
-
-  # Discord Bot with PostgreSQL
-  discordbot-postgresql:
-    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/discordbot}:latest
-    build:
-      context: .
-      target: development
-    container_name: discordbot-postgresql
-    environment:
-      - DATABASE_TYPE=postgresql
-      - DATABASE_URL=postgresql://bot:password@postgres:5432/discordbot?schema=public
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-      - JWT_SECRET=${JWT_SECRET}
-      - API_PORT=3001
-      - API_HOST=0.0.0.0
-    ports:
-      - "3002:3001"
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - postgresql
-
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: discordbot-postgres
-    environment:
-      - POSTGRES_DB=discordbot
-      - POSTGRES_USER=bot
-      - POSTGRES_PASSWORD=password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bot -d discordbot"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    profiles:
-      - postgresql
 
   # Production Discord Bot
   discordbot-prod:
-    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/discordbot}:latest
     build:
       context: .
       target: production
     container_name: discordbot-prod
     environment:
-      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
-      - DATABASE_URL=${DATABASE_URL}
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-      - JWT_SECRET=${JWT_SECRET}
-      - API_PORT=3001
-      - API_HOST=0.0.0.0
-    ports:
-      - "3000:3001"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     restart: unless-stopped
     profiles:
-      - production
-
-volumes:
-  postgres_data: 
+      - production 

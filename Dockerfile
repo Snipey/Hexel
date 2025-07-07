@@ -19,9 +19,6 @@ FROM base AS development
 # Copy source code
 COPY . .
 
-# Generate Prisma client
-RUN pnpm prisma generate
-
 # Expose ports
 EXPOSE 3001
 
@@ -33,9 +30,6 @@ FROM base AS builder
 
 # Copy source code
 COPY . .
-
-# Generate Prisma client
-RUN pnpm prisma generate
 
 # Build the application
 RUN pnpm run build
@@ -61,18 +55,9 @@ RUN pnpm install --frozen-lockfile --prod
 
 # Copy built application from builder stage
 COPY --from=builder --chown=bot:nodejs /app/dist ./dist
-COPY --from=builder --chown=bot:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=bot:nodejs /app/prisma ./prisma
 
 # Switch to non-root user
 USER bot
-
-# Expose ports
-EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" || exit 1
 
 # Production command
 CMD ["node", "dist/index.js"] 

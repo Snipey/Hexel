@@ -1,16 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-export interface CommandModule {
-  data: { name: string };
-  execute: (...args: any[]) => any;
-}
-
-export interface InteractionModule {
-  data: { name: string | RegExp | (string | RegExp)[] };
-  execute: (...args: any[]) => any;
-}
-
 export async function loadModulesArray<T extends { data: any; execute: any }>(dir: string): Promise<T[]> {
   const modules: T[] = [];
   async function traverse(currentPath: string) {

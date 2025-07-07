@@ -1,17 +1,13 @@
 # Bitcraft Discord Bot
 
-A feature-rich, extensible Discord bot for Bitcraft communities, written in TypeScript using discord.js, Prisma, and SQLite. Supports advanced project/resource tracking with recursive item dependencies, building tracking, and a modern command UX.
+A Discord bot for Bitcraft communities, written in TypeScript using discord.js. Provides crafting information and basic bot functionality.
 
 ---
 
 ## Features
-- **Slash Commands** for crafting info, pings, and project/resource tracking
-- **Project Tracking**: Track buildings, items, and any resource for collaborative projects
-- **Recursive Dependencies**: Automatically track all precursor items for crafted resources
-- **Forum Channel Support**: Uses Discord forum channels for best project management (with fallback to text channels)
-- **Persistent Storage**: Uses Prisma ORM and SQLite for robust, type-safe data storage
-- **Autocomplete**: Fast, user-friendly autocomplete for items and buildings
-- **Modern UX**: Friendly error messages, help command, and clear status reporting
+- **Slash Commands** for crafting info and basic bot operations
+- **Crafting Information**: Show crafting recipes, drill down on ingredients, and see item icons
+- **Modern UX**: Friendly error messages and clear status reporting
 
 ---
 
@@ -27,16 +23,9 @@ Create a `.env` file in the project root:
 ```
 BOT_TOKEN=your_discord_bot_token
 CLIENT_ID=your_discord_client_id
-DATABASE_URL=file:./projects.sqlite
 ```
 
-### 3. Prisma Setup
-```sh
-npx prisma migrate deploy
-npx prisma generate
-```
-
-### 4. Run the Bot
+### 3. Run the Bot
 ```sh
 pnpm run dev           # For development (single process)
 pnpm run shard         # For production with sharding
@@ -48,7 +37,6 @@ pnpm run shard         # For production with sharding
 When inviting the bot, use these OAuth2 scopes and permissions:
 - **Scopes:** `bot`, `applications.commands`
 - **Bot Permissions:**
-  - Manage Channels (for project channel/thread creation)
   - Send Messages, Embed Links, Read Message History
   - Use Slash Commands, View Channels
 
@@ -56,18 +44,11 @@ When inviting the bot, use these OAuth2 scopes and permissions:
 
 ## Usage
 
-### **Project Tracking**
-- `/project help` — Show all project tracking commands and tips
-- `/project create name:<name>` — Create a new project (forum post or thread)
-- `/project addresource project:<name> resource:<item/building> amount:<n>` — Add a resource (recursively adds ingredients for items)
-- `/project listresources project:<name>` — Show all resources and their status
-- `/project complete project:<name> resource:<name>` — Mark a resource and all sub-resources as completed
-- `/project completeone project:<name> resource:<name>` — Mark only a single resource as completed
-- `/project editresource project:<name> resource:<name> [amount:<n>] [type:<type>]` — Edit a resource
-- `/project removeresource project:<name> resource:<name> [cascade:true|false]` — Remove a resource (and optionally its sub-resources)
-
 ### **Crafting Info**
 - `/craft <item>` — Show crafting recipe, drill down on ingredients, and see item icons
+
+### **Basic Commands**
+- `/ping` — Check bot latency and status
 
 ---
 
@@ -81,7 +62,6 @@ When inviting the bot, use these OAuth2 scopes and permissions:
 - Use TypeScript and follow the existing code style
 - Add new commands in `src/commands/`, interactions in `src/interactions/`, and utilities in `src/utils/`
 - Run `pnpm run dev` for development
-- Use `prisma/schema.prisma` to update the database schema
 
 ---
 
