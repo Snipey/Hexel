@@ -1,8 +1,12 @@
-# PostgreSQL Setup Guide
+# Database Configuration Guide
+
+## Dynamic Database Switching
+
+The bot now supports dynamic switching between SQLite and PostgreSQL databases. You can easily switch between database types without changing code.
 
 ## Prisma Configuration
 
-The bot has been configured to use PostgreSQL instead of SQLite. Here's what you need to do:
+The bot has been configured to support both SQLite and PostgreSQL. Here's what you need to do:
 
 ### 1. Install PostgreSQL
 
@@ -22,9 +26,9 @@ Create a `.env` file in the bot directory with the following variables:
 
 ```env
 # Database Configuration
-# PostgreSQL connection string format:
-# postgresql://username:password@host:port/database?schema=public
-DATABASE_URL="postgresql://username:password@localhost:5432/discordbot?schema=public"
+DATABASE_TYPE=sqlite  # or postgresql
+DATABASE_URL="file:./dev.db"  # for SQLite
+# DATABASE_URL="postgresql://username:password@localhost:5432/discordbot?schema=public"  # for PostgreSQL
 
 # Discord Bot Configuration
 DISCORD_TOKEN=your_discord_bot_token_here
@@ -39,16 +43,47 @@ API_PORT=3001
 API_HOST=localhost
 ```
 
-### 4. Update Connection String
+### 4. Database Switching
 
-Replace the placeholders in the DATABASE_URL:
+You can switch between database types using several methods:
+
+#### Method 1: Environment Variable
+Set `DATABASE_TYPE` in your `.env` file:
+- `DATABASE_TYPE=sqlite` for SQLite
+- `DATABASE_TYPE=postgresql` for PostgreSQL
+
+#### Method 2: CLI Commands
+Use the provided npm scripts:
+```bash
+# Switch to SQLite
+pnpm run db:switch-sqlite
+
+# Switch to PostgreSQL
+pnpm run db:switch-postgresql
+
+# Check database status
+pnpm run db:status
+
+# Run migrations
+pnpm run db:migrate
+```
+
+#### Method 3: Discord Command
+Use the `/database` command in Discord (requires Administrator permissions):
+- `/database status` - Show current database status
+- `/database switch type:sqlite` - Switch to SQLite
+- `/database switch type:postgresql` - Switch to PostgreSQL
+
+### 5. Update Connection String
+
+For PostgreSQL, replace the placeholders in the DATABASE_URL:
 - `username`: Your PostgreSQL username
 - `password`: Your PostgreSQL password
 - `host`: Your PostgreSQL host (usually `localhost`)
 - `port`: Your PostgreSQL port (usually `5432`)
 - `database`: Your database name (e.g., `discordbot`)
 
-### 5. Generate Prisma Client
+### 6. Generate Prisma Client
 
 After setting up your environment variables, generate the Prisma client:
 
@@ -56,7 +91,7 @@ After setting up your environment variables, generate the Prisma client:
 pnpm prisma generate
 ```
 
-### 6. Run Database Migrations
+### 7. Run Database Migrations
 
 Create and apply the database schema:
 
@@ -64,7 +99,7 @@ Create and apply the database schema:
 pnpm prisma migrate dev --name init
 ```
 
-### 7. Verify Connection
+### 8. Verify Connection
 
 You can verify the connection by running:
 
@@ -76,10 +111,18 @@ This will pull the current database schema and confirm the connection is working
 
 ## Dependencies Added
 
-The following dependencies have been added to support PostgreSQL:
+The following dependencies have been added to support both databases:
 
 - `pg`: PostgreSQL client for Node.js
 - `@types/pg`: TypeScript definitions for pg
+
+## Features Added
+
+- **Dynamic Database Switching**: Switch between SQLite and PostgreSQL without code changes
+- **CLI Management**: Command-line tools for database management
+- **Discord Integration**: Database management commands in Discord
+- **Automatic Schema Management**: Automatic schema file switching
+- **Connection Testing**: Built-in connection verification
 
 ## Migration from SQLite
 
